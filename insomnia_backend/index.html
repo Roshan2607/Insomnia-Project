@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InsomnAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+
+/* NLP points */
+.nlp-points{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0}
+.nlp-point{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px;
+  background:rgba(124,92,252,0.06);
+  border:1px solid rgba(124,92,252,0.15);
+  border-radius:10px;
+  font-size:.85rem;line-height:1.6;color:var(--t1);
+  animation:pointIn .3s ease both;
+}
+.nlp-point:nth-child(1){animation-delay:.05s}
+.nlp-point:nth-child(2){animation-delay:.15s}
+.nlp-point:nth-child(3){animation-delay:.25s}
+@keyframes pointIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.nlp-point-icon{
+  width:26px;height:26px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;margin-top:1px;
+}
+.nlp-point:nth-child(1) .nlp-point-icon{background:rgba(167,139,250,0.15)}
+.nlp-point:nth-child(2) .nlp-point-icon{background:rgba(251,191,36,0.12)}
+.nlp-point:nth-child(3) .nlp-point-icon{background:rgba(52,211,153,0.12)}
+.nlp-point-text{flex:1}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f18;--s1:#17171f;--s2:#1e1e2a;
+  --b1:rgba(255,255,255,0.08);--b2:rgba(255,255,255,0.05);
+  --t1:#f0f0f8;--t2:#9090a8;--t3:#5a5a78;
+  --pu:#7c5cfc;--pul:#a78bfa;--pud:rgba(124,92,252,0.15);--pug:rgba(124,92,252,0.4);
+  --lo:#34d399;--mi:#fbbf24;--hi:#f87171;
+  --ff:'Outfit',sans-serif;--fm:'JetBrains Mono',monospace;--r:14px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--ff);min-height:100vh;
+  background-image:radial-gradient(ellipse 90% 45% at 50% -5%,rgba(124,92,252,0.15) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 95% 50%,rgba(90,70,180,0.07) 0%,transparent 60%);}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--s1)}::-webkit-scrollbar-thumb{background:var(--t3);border-radius:99px}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:rgba(15,15,24,0.8);backdrop-filter:blur(24px);border-bottom:1px solid var(--b2);position:sticky;top:0;z-index:100;}
+.logo{font-weight:800;font-size:1.2rem;letter-spacing:-0.03em;background:linear-gradient(130deg,#fff 0%,var(--pul) 120%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pill{display:flex;align-items:center;gap:7px;font-family:var(--fm);font-size:0.68rem;color:var(--t3);background:rgba(255,255,255,0.03);border:1px solid var(--b2);border-radius:99px;padding:5px 14px;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--t3);transition:all .4s}.dot.on{background:var(--lo);box-shadow:0 0 8px var(--lo)}
+@media(max-width:600px){header{padding:14px 18px}}
+
+/* progress bar */
+#progress-wrap{background:rgba(255,255,255,0.03);border-bottom:1px solid var(--b2);padding:16px 48px;}
+.prog-steps{display:flex;align-items:center;gap:0;max-width:880px;margin:0 auto;}
+.prog-step{display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;opacity:.4;transition:opacity .2s;}
+.prog-step.active{opacity:1}
+.prog-step.done{opacity:.7}
+.prog-num{width:26px;height:26px;border-radius:50%;border:1px solid var(--t3);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-family:var(--fm);flex-shrink:0;transition:all .2s;}
+.prog-step.active .prog-num{background:var(--pu);border-color:var(--pu);color:#fff;box-shadow:0 0 12px var(--pug)}
+.prog-step.done .prog-num{background:var(--lo);border-color:var(--lo);color:#000}
+.prog-label{font-size:.72rem;font-weight:500;color:var(--t2);white-space:nowrap}
+.prog-step.active .prog-label{color:var(--t1)}
+.prog-line{flex:1;height:1px;background:var(--b1);margin:0 8px;flex-shrink:1}
+@media(max-width:600px){#progress-wrap{padding:12px 16px}.prog-label{display:none}}
+
+/* main */
+main{max-width:880px;margin:0 auto;padding:40px 24px 100px}
+
+/* step panels */
+.step-panel{display:none;animation:fadeIn .3s ease}
+.step-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.step-hero{margin-bottom:32px}
+.step-hero h2{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;letter-spacing:-0.03em;margin-bottom:6px}
+.step-hero h2 em{font-style:normal;background:linear-gradient(120deg,var(--pul),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.step-hero p{font-size:.8rem;color:var(--t3);font-family:var(--fm)}
+
+.card{background:linear-gradient(155deg,rgba(255,255,255,0.055) 0%,rgba(255,255,255,0.018) 100%);border:1px solid var(--b1);border-radius:var(--r);padding:22px 26px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.09),0 4px 20px rgba(0,0,0,0.28);margin-bottom:16px;}
+.fields{display:grid;gap:18px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}}
+
+/* field label row */
+.flr{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.flr label,.sf-label-wrap label{font-size:.7rem;font-weight:500;color:var(--t2);letter-spacing:.04em}
+.info-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--t3);background:transparent;color:var(--t3);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;line-height:1;padding:0;}
+.info-btn:hover{border-color:var(--pul);color:var(--pul);background:var(--pud)}
+
+/* slider */
+.sf{display:flex;flex-direction:column}
+.sf-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.sf-label-wrap{display:flex;align-items:center;gap:5px}
+.sf-val{font-family:var(--fm);font-size:.95rem;font-weight:500;color:#fff}
+.sf-val span{font-size:.58rem;color:var(--t3);margin-left:2px}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:99px;background:linear-gradient(90deg,var(--pu) var(--pct,0%),var(--s2) var(--pct,0%));outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:linear-gradient(135deg,var(--pul),var(--pu));box-shadow:0 0 0 3px rgba(124,92,252,0.22),0 2px 6px rgba(0,0,0,0.4);transition:transform .13s,box-shadow .13s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25);box-shadow:0 0 0 5px rgba(124,92,252,0.28)}
+
+/* stepper */
+.nf{display:flex;flex-direction:column}
+.stepper{display:flex;align-items:center;background:rgba(0,0,0,0.22);border:1px solid var(--b1);border-radius:8px;overflow:hidden;}
+.stepper button{background:rgba(255,255,255,0.035);border:none;color:var(--t2);font-size:1rem;width:36px;height:38px;cursor:pointer;transition:background .15s,color .15s;flex-shrink:0;}
+.stepper button:hover{background:var(--pud);color:var(--pul)}
+.stepper input{flex:1;background:transparent;border:none;color:#fff;font-family:var(--fm);font-size:.88rem;font-weight:500;text-align:center;outline:none;padding:0 4px;}
+.stepper input::-webkit-inner-spin-button{-webkit-appearance:none}
+
+/* chips */
+.cf{display:flex;flex-direction:column}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.chips input[type=radio]{display:none}
+.chips label{padding:6px 14px;border-radius:99px;border:1px solid rgba(255,255,255,0.09);font-size:.75rem;font-weight:500;cursor:pointer;color:var(--t3);background:rgba(255,255,255,0.025);transition:all .16s;user-select:none;}
+.chips input:checked+label{background:var(--pud);border-color:var(--pu);color:var(--pul);}
+.chips label:hover{border-color:rgba(124,92,252,0.4);color:var(--t1)}
+
+/* ISI */
+.isi-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:16px;}
+.isi-row:last-child{border:none}
+.isi-q{font-size:.8rem;color:var(--t1);flex:1}
+.isi-dots{display:flex;gap:5px}
+.isi-dots input[type=radio]{display:none}
+.isi-dots label{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:.72rem;cursor:pointer;border:1px solid rgba(255,255,255,0.08);color:var(--t3);transition:all .14s;}
+.isi-dots input:checked+label{background:var(--pu);border-color:var(--pu);color:#fff;box-shadow:0 0 10px var(--pug)}
+.isi-dots label:hover{border-color:var(--pu);color:var(--pul)}
+
+/* nav buttons */
+.step-nav{display:flex;gap:12px;margin-top:24px}
+.btn-next{flex:1;background:linear-gradient(135deg,var(--pu),#4f36cc);border:none;border-radius:10px;color:#fff;font-family:var(--ff);font-size:.98rem;font-weight:700;padding:14px;cursor:pointer;box-shadow:0 4px 22px rgba(124,92,252,0.38);transition:opacity .2s,transform .1s;position:relative;overflow:hidden;}
+.btn-next::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.11) 0%,transparent 50%);pointer-events:none;}
+.btn-next:hover{opacity:.9;transform:translateY(-1px)}.btn-next:active{transform:translateY(0)}
+.btn-next:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.btn-next .spin{display:none;width:18px;height:18px;margin:0 auto;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+.btn-next.loading .lbl{display:none}.btn-next.loading .spin{display:block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.btn-back{background:rgba(255,255,255,0.05);border:1px solid var(--b1);border-radius:10px;color:var(--t2);font-family:var(--ff);font-size:.95rem;font-weight:500;padding:14px 24px;cursor:pointer;transition:all .15s;}
+.btn-back:hover{background:rgba(255,255,255,0.08);color:var(--t1)}
+
+#err{display:none;margin-top:12px;padding:11px 16px;background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.22);border-radius:8px;font-size:.78rem;color:var(--hi);font-family:var(--fm)}
+
+/* ── RESULT ── */
+#result{display:none;animation:up .38s ease}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.result-hero{margin-bottom:28px}
+.result-hero h2{font-size:clamp(1.4rem,3vw,2rem);font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
+.result-hero p{font-size:.78rem;color:var(--t3);font-family:var(--fm)}
+
+.score-card{background:linear-gradient(155deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018));border:1px solid var(--b1);border-radius:var(--r);padding:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.09),0 8px 30px rgba(0,0,0,0.38);margin-bottom:16px;}
+.rtop{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+.bigscore{font-size:clamp(3rem,10vw,4.5rem);font-weight:800;letter-spacing:-.05em;line-height:1}
+.scorelabel{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;font-family:var(--fm)}
+.gwrap{flex:1;margin-left:28px;padding-bottom:4px}
+.ginfo{font-size:.62rem;color:var(--t3);font-family:var(--fm);text-align:right;margin-bottom:8px}
+.gtrack{height:7px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.gfill{height:100%;border-radius:99px;width:0%;transition:width .9s cubic-bezier(.4,0,.2,1)}
+.flbl{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:11px}
+.frow{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+.fname{font-size:.76rem;color:var(--t1);width:148px;flex-shrink:0;text-transform:capitalize}
+.ftrack{flex:1;height:3px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.ffill{height:100%;background:var(--pul);border-radius:99px;transition:width .6s ease}
+.fval{font-family:var(--fm);font-size:.68rem;color:var(--t3);width:44px;text-align:right;flex-shrink:0}
+
+/* NLP report */
+.nlp-card{background:linear-gradient(155deg,rgba(124,92,252,0.08),rgba(124,92,252,0.03));border:1px solid rgba(124,92,252,0.2);border-radius:var(--r);padding:24px;margin-bottom:16px;}
+.nlp-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.nlp-icon{width:32px;height:32px;border-radius:8px;background:var(--pud);display:flex;align-items:center;justify-content:center;font-size:1rem}
+.nlp-title{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--pul)}
+.nlp-text{font-size:.9rem;line-height:1.7;color:var(--t1)}
+.nlp-loading{display:flex;align-items:center;gap:10px;color:var(--t3);font-size:.82rem;font-family:var(--fm)}
+.nlp-dots span{animation:blink 1.4s infinite;opacity:0}
+.nlp-dots span:nth-child(2){animation-delay:.2s}
+.nlp-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
+
+/* sleep chart */
+.chart-card{background:linear-gradient(155deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018));border:1px solid var(--b1);border-radius:var(--r);padding:24px;margin-bottom:16px;}
+.chart-title{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);margin-bottom:16px}
+#sleep-chart{width:100%;height:140px}
+.chart-legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--t3)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* ISI box */
+.isibox{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.isilbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.isival{font-size:1.15rem;font-weight:700;font-family:var(--fm);margin-top:2px}
+.isisev{font-size:.76rem;color:var(--t2);margin-top:2px;text-align:right}
+
+.btn-restart{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--b1);border-radius:10px;color:var(--t2);font-family:var(--ff);font-size:.95rem;font-weight:500;padding:13px;cursor:pointer;transition:all .15s;margin-top:8px;}
+.btn-restart:hover{background:rgba(255,255,255,0.08);color:var(--t1)}
+
+/* info panel */
+#info-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px);}
+#info-overlay.open{opacity:1;pointer-events:all}
+#info-panel{position:fixed;right:0;top:0;bottom:0;width:360px;max-width:90vw;background:linear-gradient(180deg,#1a1a28 0%,#141420 100%);border-left:1px solid var(--b1);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,0.5);}
+#info-panel.open{transform:translateX(0)}
+.panel-header{padding:20px 24px 16px;border-bottom:1px solid var(--b2);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.panel-title{font-size:1rem;font-weight:700;color:#fff;line-height:1.2}.panel-subtitle{font-size:.7rem;color:var(--t3);margin-top:3px;font-family:var(--fm)}
+.panel-close{background:rgba(255,255,255,0.06);border:1px solid var(--b2);border-radius:6px;color:var(--t2);font-size:1rem;width:30px;height:30px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.panel-close:hover{background:rgba(255,255,255,0.1);color:#fff}
+.panel-body{padding:20px 24px;overflow-y:auto;flex:1}
+.panel-what{font-size:.82rem;color:var(--t1);line-height:1.6;margin-bottom:18px}
+.panel-range{background:rgba(0,0,0,0.25);border:1px solid var(--b2);border-radius:10px;padding:14px 16px;margin-bottom:14px;}
+.range-title{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--pul);margin-bottom:10px}
+.range-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.range-row:last-child{margin-bottom:0}
+.range-label{font-size:.72rem;color:var(--t2)}.range-val{font-family:var(--fm);font-size:.72rem;color:#fff;background:rgba(255,255,255,0.07);padding:2px 8px;border-radius:4px}
+.panel-signals{margin-top:4px}.signal-title{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--pul);margin-bottom:10px}
+.signal-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.signal-item:last-child{border:none}
+.signal-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.signal-dot.hi{background:var(--hi)}.signal-dot.lo{background:var(--lo)}.signal-dot.mid{background:var(--mi)}
+.signal-text{font-size:.76rem;color:var(--t2);line-height:1.5}.signal-text strong{color:var(--t1);font-weight:600}
+.lexigram-note{margin-top:16px;padding:10px 14px;background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:8px;font-size:.7rem;color:var(--t3);line-height:1.5}
+.lexigram-note a{color:var(--pul);text-decoration:none}.lexigram-note a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">InsomnAI</div>
+  <div class="pill"><div class="dot" id="dot"></div><span id="api-st">connecting...</span></div>
+</header>
+
+<!-- Progress -->
+<div id="progress-wrap">
+  <div class="prog-steps">
+    <div class="prog-step active" id="ps-0" onclick="goStep(0)">
+      <div class="prog-num">1</div><div class="prog-label">About You</div>
+    </div>
+    <div class="prog-line"></div>
+    <div class="prog-step" id="ps-1" onclick="goStep(1)">
+      <div class="prog-num">2</div><div class="prog-label">Sleep</div>
+    </div>
+    <div class="prog-line"></div>
+    <div class="prog-step" id="ps-2" onclick="goStep(2)">
+      <div class="prog-num">3</div><div class="prog-label">Lifestyle</div>
+    </div>
+    <div class="prog-line"></div>
+    <div class="prog-step" id="ps-3" onclick="goStep(3)">
+      <div class="prog-num">4</div><div class="prog-label">Cardio</div>
+    </div>
+    <div class="prog-line"></div>
+    <div class="prog-step" id="ps-4" onclick="goStep(4)">
+      <div class="prog-num">5</div><div class="prog-label">Bio-Signals</div>
+    </div>
+    <div class="prog-line"></div>
+    <div class="prog-step" id="ps-5" onclick="goStep(5)">
+      <div class="prog-num">6</div><div class="prog-label">ISI Quiz</div>
+    </div>
+  </div>
+</div>
+
+<!-- Info panel -->
+<div id="info-overlay" onclick="closePanel()"></div>
+<div id="info-panel">
+  <div class="panel-header">
+    <div><div class="panel-title" id="panel-title">—</div><div class="panel-subtitle" id="panel-subtitle">—</div></div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<main>
+
+<!-- ── STEP 0: Demographics ── -->
+<div class="step-panel active" id="step-0">
+  <div class="step-hero">
+    <h2>Tell us about <em>yourself</em></h2>
+    <p>// basic demographics · helps calibrate the model</p>
+  </div>
+  <div class="card">
+    <div class="fields g3">
+      <div class="nf">
+        <div class="flr"><label>Age</label><button class="info-btn" onclick="showInfo('age')">i</button></div>
+        <div class="stepper"><button type="button" onclick="step('age',-1)">−</button><input type="number" id="age" value="30" min="1" max="120"/><button type="button" onclick="step('age',1)">+</button></div>
+      </div>
+      <div class="cf">
+        <div class="flr"><label>Gender</label><button class="info-btn" onclick="showInfo('gender')">i</button></div>
+        <div class="chips"><input type="radio" name="gender" id="gm" value="male"/><label for="gm">Male</label><input type="radio" name="gender" id="gf" value="female"/><label for="gf">Female</label></div>
+      </div>
+      <div class="cf">
+        <div class="flr"><label>BMI</label><button class="info-btn" onclick="showInfo('bmi')">i</button></div>
+        <div class="chips"><input type="radio" name="bmi" id="bn" value="normal"/><label for="bn">Normal</label><input type="radio" name="bmi" id="bov" value="overweight"/><label for="bov">Overweight</label><input type="radio" name="bmi" id="bb" value="obese"/><label for="bb">Obese</label></div>
+      </div>
+    </div>
+  </div>
+  <div class="step-nav"><button class="btn-next" onclick="goStep(1)"><span class="lbl">Next →</span></button></div>
+</div>
+
+<!-- ── STEP 1: Sleep ── -->
+<div class="step-panel" id="step-1">
+  <div class="step-hero">
+    <h2>Your <em>sleep</em> patterns</h2>
+    <p>// how much and how well you sleep</p>
+  </div>
+  <div class="card">
+    <div class="fields g2">
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>Sleep Duration</label><button class="info-btn" onclick="showInfo('sleep_duration')">i</button></div><div class="sf-val"><span id="v-sleep_duration">6.5</span><span>hrs</span></div></div>
+        <input type="range" id="sleep_duration" min="2" max="12" step="0.5" value="6.5" oninput="sv(this,'sleep_duration')"/>
+      </div>
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>Sleep Quality</label><button class="info-btn" onclick="showInfo('quality_of_sleep')">i</button></div><div class="sf-val"><span id="v-quality_of_sleep">5</span><span>/ 10</span></div></div>
+        <input type="range" id="quality_of_sleep" min="1" max="10" step="1" value="5" oninput="sv(this,'quality_of_sleep')"/>
+      </div>
+    </div>
+  </div>
+  <div class="step-nav"><button class="btn-back" onclick="goStep(0)">← Back</button><button class="btn-next" onclick="goStep(2)"><span class="lbl">Next →</span></button></div>
+</div>
+
+<!-- ── STEP 2: Lifestyle ── -->
+<div class="step-panel" id="step-2">
+  <div class="step-hero">
+    <h2>Daily <em>lifestyle</em></h2>
+    <p>// activity, stress, and movement patterns</p>
+  </div>
+  <div class="card">
+    <div class="fields g3">
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>Stress Level</label><button class="info-btn" onclick="showInfo('stress_level')">i</button></div><div class="sf-val"><span id="v-stress_level">5</span><span>/ 10</span></div></div>
+        <input type="range" id="stress_level" min="1" max="10" step="1" value="5" oninput="sv(this,'stress_level')"/>
+      </div>
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>Physical Activity</label><button class="info-btn" onclick="showInfo('physical_activity')">i</button></div><div class="sf-val"><span id="v-physical_activity">30</span><span>min</span></div></div>
+        <input type="range" id="physical_activity" min="0" max="120" step="5" value="30" oninput="sv(this,'physical_activity')"/>
+      </div>
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>Daily Steps</label><button class="info-btn" onclick="showInfo('daily_steps')">i</button></div><div class="sf-val"><span id="v-daily_steps">5000</span></div></div>
+        <input type="range" id="daily_steps" min="0" max="20000" step="500" value="5000" oninput="sv(this,'daily_steps')"/>
+      </div>
+    </div>
+  </div>
+  <div class="step-nav"><button class="btn-back" onclick="goStep(1)">← Back</button><button class="btn-next" onclick="goStep(3)"><span class="lbl">Next →</span></button></div>
+</div>
+
+<!-- ── STEP 3: Cardiovascular ── -->
+<div class="step-panel" id="step-3">
+  <div class="step-hero">
+    <h2><em>Cardiovascular</em> metrics</h2>
+    <p>// heart rate and blood pressure readings</p>
+  </div>
+  <div class="card">
+    <div class="fields g3">
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>Heart Rate</label><button class="info-btn" onclick="showInfo('heart_rate')">i</button></div><div class="sf-val"><span id="v-heart_rate">72</span><span>bpm</span></div></div>
+        <input type="range" id="heart_rate" min="40" max="120" step="1" value="72" oninput="sv(this,'heart_rate')"/>
+      </div>
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>ECG Heart Rate</label><button class="info-btn" onclick="showInfo('ecg_heart_rate')">i</button></div><div class="sf-val"><span id="v-ecg_heart_rate">74</span><span>bpm</span></div></div>
+        <input type="range" id="ecg_heart_rate" min="40" max="120" step="1" value="74" oninput="sv(this,'ecg_heart_rate')"/>
+      </div>
+      <div class="sf">
+        <div class="sf-top"><div class="sf-label-wrap"><label>QRS Duration</label><button class="info-btn" onclick="showInfo('ecg_qrs_duration')">i</button></div><div class="sf-val"><span id="v-ecg_qrs_duration">95</span><span>ms</span></div></div>
+        <input type="range" id="ecg_qrs_duration" min="60" max="160" step="1" value="95" oninput="sv(this,'ecg_qrs_duration')"/>
+      </div>
+      <div class="nf">
+        <div class="flr"><label>Systolic BP</label><button class="info-btn" onclick="showInfo('systolic')">i</button></div>
+        <div class="stepper"><button type="button" onclick="step('systolic',-1)">−</button><input type="number" id="systolic" value="120" min="80" max="200"/><button type="button" onclick="step('systolic',1)">+</button></div>
+      </div>
+      <div class="nf">
+        <div class="flr"><label>Diastolic BP</label><button class="info-btn" onclick="showInfo('diastolic')">i</button></div>
+        <div class="stepper"><button type="button" onclick="step('diastolic',-1)">−</button><input type="number" id="diastolic" value="80" min="50" max="130"/><button type="button" onclick="step('diastolic',1)">+</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="step-nav"><button class="btn-back" onclick="goStep(2)">← Back</button><button class="btn-next" onclick="goStep(4)"><span class="lbl">Next →</span></button></div>
+</div>
+
+<!-- ── STEP 4: Bio-Signals ── -->
+<div class="step-panel" id="step-4">
+  <div class="step-hero">
+    <h2>Brain & <em>bio-signals</em></h2>
+    <p>// EEG, EMG and electrolyte readings</p>
+  </div>
+  <div class="card">
+    <div class="fields g3">
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>EEG Alpha</label><button class="info-btn" onclick="showInfo('eeg_alpha')">i</button></div><div class="sf-val"><span id="v-eeg_alpha">8.5</span><span>μV</span></div></div><input type="range" id="eeg_alpha" min="0" max="30" step="0.5" value="8.5" oninput="sv(this,'eeg_alpha')"/></div>
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>EEG Beta</label><button class="info-btn" onclick="showInfo('eeg_beta')">i</button></div><div class="sf-val"><span id="v-eeg_beta">15</span><span>μV</span></div></div><input type="range" id="eeg_beta" min="0" max="40" step="0.5" value="15" oninput="sv(this,'eeg_beta')"/></div>
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>EEG Theta</label><button class="info-btn" onclick="showInfo('eeg_theta')">i</button></div><div class="sf-val"><span id="v-eeg_theta">5</span><span>μV</span></div></div><input type="range" id="eeg_theta" min="0" max="25" step="0.5" value="5" oninput="sv(this,'eeg_theta')"/></div>
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>EMG Mean</label><button class="info-btn" onclick="showInfo('emg_mean')">i</button></div><div class="sf-val"><span id="v-emg_mean">0.3</span><span>mV</span></div></div><input type="range" id="emg_mean" min="0" max="5" step="0.1" value="0.3" oninput="sv(this,'emg_mean')"/></div>
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>EMG Max</label><button class="info-btn" onclick="showInfo('emg_max')">i</button></div><div class="sf-val"><span id="v-emg_max">1.2</span><span>mV</span></div></div><input type="range" id="emg_max" min="0" max="10" step="0.1" value="1.2" oninput="sv(this,'emg_max')"/></div>
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>ECF Sodium</label><button class="info-btn" onclick="showInfo('ecf_na')">i</button></div><div class="sf-val"><span id="v-ecf_na">140</span><span>mEq</span></div></div><input type="range" id="ecf_na" min="120" max="160" step="0.5" value="140" oninput="sv(this,'ecf_na')"/></div>
+      <div class="sf"><div class="sf-top"><div class="sf-label-wrap"><label>ECF Potassium</label><button class="info-btn" onclick="showInfo('ecf_k')">i</button></div><div class="sf-val"><span id="v-ecf_k">4.2</span><span>mEq</span></div></div><input type="range" id="ecf_k" min="2" max="7" step="0.1" value="4.2" oninput="sv(this,'ecf_k')"/></div>
+    </div>
+  </div>
+  <div class="step-nav"><button class="btn-back" onclick="goStep(3)">← Back</button><button class="btn-next" onclick="goStep(5)"><span class="lbl">Next →</span></button></div>
+</div>
+
+<!-- ── STEP 5: ISI ── -->
+<div class="step-panel" id="step-5">
+  <div class="step-hero">
+    <h2>Sleep <em>questionnaire</em></h2>
+    <p>// ISI · optional · blended 40% with model score · rate 0 (none) to 4 (severe)</p>
+  </div>
+  <div class="card"><div id="isi-wrap"></div></div>
+  <div id="err"></div>
+  <div class="step-nav">
+    <button class="btn-back" onclick="goStep(4)">← Back</button>
+    <button class="btn-next" id="cta" onclick="doSubmit()"><span class="lbl">Analyze →</span><div class="spin"></div></button>
+  </div>
+</div>
+
+<!-- ── RESULT ── -->
+<div id="result">
+  <div class="result-hero">
+    <h2>Your sleep <em>assessment</em></h2>
+    <p>// powered by Random Forest + llama3 · not a medical diagnosis</p>
+  </div>
+
+  <!-- Score -->
+  <div class="score-card">
+    <div class="rtop">
+      <div><div class="bigscore" id="r-score">—</div><div class="scorelabel" id="r-label">—</div></div>
+      <div class="gwrap"><div class="ginfo" id="r-pct">0 / 100</div><div class="gtrack"><div class="gfill" id="r-gauge"></div></div></div>
+    </div>
+    <div class="flbl">Top contributing factors</div>
+    <div id="r-factors"></div>
+  </div>
+
+<!-- NLP Report -->
+  <div class="nlp-card">
+    <div class="nlp-header">
+      <div class="nlp-icon">🧠</div>
+      <div class="nlp-title">AI Clinical Summary · llama3</div>
+    </div>
+    <div id="nlp-content">
+      <div class="nlp-loading">Generating report<div class="nlp-dots"><span>.</span><span>.</span><span>.</span></div></div>
+    </div>
+  </div>
+
+  <!-- Sleep Chart -->
+  <div class="chart-card">
+    <div class="chart-title">Estimated Sleep Architecture</div>
+    <canvas id="sleep-chart"></canvas>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#7c5cfc"></div>Awake</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Light Sleep</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>Deep Sleep</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>REM</div>
+    </div>
+  </div>
+
+  <!-- ISI -->
+  <div id="r-isi" class="isibox" style="display:none">
+    <div><div class="isilbl">ISI Score</div><div class="isival" id="r-isi-val">—</div></div>
+    <div><div class="isilbl" style="text-align:right">Severity</div><div class="isisev" id="r-isi-sev">—</div></div>
+  </div>
+
+  <button class="btn-restart" onclick="restart()">↺ Start over</button>
+</div>
+
+</main>
+
+<script>
+const API = 'http://localhost:8000';
+let currentStep = 0;
+const TOTAL_STEPS = 6;
+
+// ── Step navigation ───────────────────────────────────────────────────────────
+function goStep(n) {
+  document.getElementById('step-' + currentStep)?.classList.remove('active');
+  document.getElementById('result').style.display = 'none';
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+
+  currentStep = n;
+  document.getElementById('step-' + n)?.classList.add('active');
+
+  // Update progress
+  for (let i = 0; i < TOTAL_STEPS; i++) {
+    const el = document.getElementById('ps-' + i);
+    if (!el) continue;
+    el.classList.remove('active','done');
+    if (i === n) el.classList.add('active');
+    else if (i < n) el.classList.add('done');
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function restart() {
+  document.getElementById('result').style.display = 'none';
+  goStep(0);
+}
+
+// ── Slider ───────────────────────────────────────────────────────────────────
+function sv(el, id) {
+  const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
+  el.style.setProperty('--pct', ((val-min)/(max-min)*100).toFixed(1)+'%');
+  document.getElementById('v-'+id).textContent = val;
+}
+document.querySelectorAll('input[type=range]').forEach(el => { if(el.id) sv(el,el.id); });
+
+function step(id, d) {
+  const el = document.getElementById(id);
+  el.value = Math.min(parseFloat(el.max||99999), Math.max(parseFloat(el.min||0), +el.value+d));
+}
+
+// ── ISI ───────────────────────────────────────────────────────────────────────
+const ISI_Q = ['Difficulty falling asleep','Difficulty staying asleep','Waking up too early','Sleep satisfaction (0=very satisfied)','Noticeable to others','Worried about sleep','Interferes with daily life'];
+const wrap = document.getElementById('isi-wrap');
+ISI_Q.forEach((q,i) => {
+  const n=i+1, row=document.createElement('div');
+  row.className='isi-row';
+  row.innerHTML=`<div class="isi-q">${q}</div><div class="isi-dots">${[0,1,2,3,4].map(v=>`<input type="radio" name="isi_${n}" id="i${n}_${v}" value="${v}"/><label for="i${n}_${v}">${v}</label>`).join('')}</div>`;
+  wrap.appendChild(row);
+});
+
+// ── Health ────────────────────────────────────────────────────────────────────
+async function ping() {
+  try {
+    const r = await fetch(`${API}/health`,{signal:AbortSignal.timeout(3000)});
+    const d = await r.json();
+    document.getElementById('dot').className='dot on';
+    document.getElementById('api-st').textContent=d.model_loaded?'model ready':'api up · no model';
+  } catch { document.getElementById('api-st').textContent='api offline'; }
+}
+ping();
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function doSubmit() {
+  const btn = document.getElementById('cta');
+  const err = document.getElementById('err');
+  err.style.display='none';
+  const fv = id => parseFloat(document.getElementById(id)?.value)||0;
+  const gender = document.querySelector('[name=gender]:checked')?.value||'';
+  const bmi    = document.querySelector('[name=bmi]:checked')?.value||'';
+  const payload = {
+    age:fv('age'),sleep_duration:fv('sleep_duration'),quality_of_sleep:fv('quality_of_sleep'),
+    physical_activity:fv('physical_activity'),stress_level:fv('stress_level'),daily_steps:fv('daily_steps'),
+    heart_rate:fv('heart_rate'),ecg_heart_rate:fv('ecg_heart_rate'),ecg_qrs_duration:fv('ecg_qrs_duration'),
+    systolic:fv('systolic'),diastolic:fv('diastolic'),
+    eeg_alpha:fv('eeg_alpha'),eeg_beta:fv('eeg_beta'),eeg_theta:fv('eeg_theta'),
+    emg_mean:fv('emg_mean'),emg_max:fv('emg_max'),ecf_na:fv('ecf_na'),ecf_k:fv('ecf_k'),
+    bmi_normal:bmi==='normal'?1:0,bmi_overweight:bmi==='overweight'?1:0,bmi_obese:bmi==='obese'?1:0,
+    gender_male:gender==='male'?1:0,gender_female:gender==='female'?1:0,
+  };
+  for(let i=1;i<=7;i++){const v=document.querySelector(`[name=isi_${i}]:checked`)?.value;if(v!==undefined)payload[`isi_${i}`]=parseInt(v);}
+  btn.classList.add('loading');btn.disabled=true;
+  try {
+    const res = await fetch(`${API}/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error((await res.json()).detail||`HTTP ${res.status}`);
+    showResult(await res.json(), payload);
+  } catch(e) {
+    err.textContent='Error: '+e.message;err.style.display='block';
+  } finally { btn.classList.remove('loading');btn.disabled=false; }
+}
+
+// ── Result ────────────────────────────────────────────────────────────────────
+function showResult(d, inputs) {
+  // Hide steps, show result
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.prog-step').forEach(p=>p.classList.add('done'));
+  const panel = document.getElementById('result');
+  panel.style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  const pct   = Math.round(d.insomnia_risk*100);
+  const color = pct>=70?'var(--hi)':pct>=40?'var(--mi)':'var(--lo)';
+  document.getElementById('r-score').textContent=pct+'%';
+  document.getElementById('r-score').style.color=color;
+  document.getElementById('r-label').textContent=d.prediction;
+  document.getElementById('r-label').style.color=color;
+  document.getElementById('r-pct').textContent=pct+' / 100';
+  const g=document.getElementById('r-gauge');
+  g.style.background=color;
+  setTimeout(()=>g.style.width=pct+'%',60);
+
+  // Factors
+  const fl=document.getElementById('r-factors');
+  fl.innerHTML='';
+  const mx=Math.max(...d.top_factors.map(f=>Math.abs(f.impact)));
+  d.top_factors.forEach(f=>{
+    const bp=mx>0?(Math.abs(f.impact)/mx*100).toFixed(1):0;
+    fl.innerHTML+=`<div class="frow"><div class="fname">${f.feature.replace(/_/g,' ')}</div><div class="ftrack"><div class="ffill" style="width:${bp}%"></div></div><div class="fval">${f.impact>0?'+':''}${f.impact.toFixed(3)}</div></div>`;
+  });
+
+  // NLP report
+  // NLP report — split into bullet points
+  const nlpEl = document.getElementById('nlp-content');
+  if (d.nlp_report) {
+    // Split on sentence boundaries into max 3 points
+    const raw = d.nlp_report.trim();
+    const sentences = raw
+      .split(/(?<=[.!?])\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 10)
+      .slice(0, 3);
+
+    const icons = ['🔍','⚡','💡'];
+    const labels = ['Pattern detected', 'Likely cause', 'Recommendation'];
+
+    const points = sentences.map((s, i) => `
+      <li class="nlp-point">
+        <div class="nlp-point-icon">${icons[i]}</div>
+        <div class="nlp-point-text">
+          <div style="font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--pul);margin-bottom:4px">${labels[i]}</div>
+          ${s}
+        </div>
+      </li>`).join('');
+
+    nlpEl.innerHTML = `<ul class="nlp-points">${points}</ul>`;
+  } else {
+    nlpEl.innerHTML = `<div style="font-size:.8rem;color:var(--t3);font-family:var(--fm);padding:4px 0">Report unavailable — make sure Ollama is running with llama3.</div>`;
+  }
+
+  // Sleep chart
+  drawSleepChart(inputs, pct);
+
+  // ISI
+  if(d.isi_total!=null){
+    document.getElementById('r-isi-val').textContent=`${d.isi_total} / 28`;
+    document.getElementById('r-isi-sev').textContent=d.isi_severity;
+    document.getElementById('r-isi').style.display='flex';
+  }
+}
+
+// ── Sleep architecture chart ──────────────────────────────────────────────────
+function drawSleepChart(inputs, riskPct) {
+  const canvas = document.getElementById('sleep-chart');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.offsetWidth, H = 140;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  // Derive sleep stage profile from inputs
+  const beta     = parseFloat(inputs.eeg_beta)  || 15;
+  const theta    = parseFloat(inputs.eeg_theta) || 5;
+  const alpha    = parseFloat(inputs.eeg_alpha) || 8;
+  const stress   = parseFloat(inputs.stress_level) || 5;
+  const duration = parseFloat(inputs.sleep_duration) || 7;
+
+  // Normalize risk to shape the chart
+  const risk = riskPct / 100;
+
+  // Build 40 time segments across the night
+  const segs = 40;
+  const segW = W / segs;
+
+  // Stage heights (0=awake top, 1=light, 2=deep, 3=REM)
+  // Higher risk = more awake/light, less deep
+  const stages = [];
+  for (let i = 0; i < segs; i++) {
+    const t = i / segs; // 0..1 through night
+    let stage;
+
+    // Sleep onset (first 10%)
+    if (t < 0.1) {
+      stage = risk > 0.6 ? 0 : 1; // high risk = stays awake
+    }
+    // Early night — deep sleep cycles
+    else if (t < 0.45) {
+      const deepChance = Math.max(0, 1 - risk - (beta - 10) / 30);
+      stage = Math.random() < deepChance ? 2 : 1;
+    }
+    // Mid night — REM cycles
+    else if (t < 0.75) {
+      const remChance = Math.max(0, (theta / 10) * (1 - risk * 0.5));
+      if (Math.random() < 0.15 * risk) stage = 0; // awakening
+      else stage = Math.random() < remChance ? 3 : 1;
+    }
+    // Late night — lighter sleep, more awakenings
+    else {
+      if (Math.random() < risk * 0.3) stage = 0;
+      else stage = Math.random() < 0.3 ? 3 : 1;
+    }
+    stages.push(stage);
+  }
+
+  // Stage colors and Y positions
+  const STAGE_COLORS = ['#7c5cfc','#a78bfa','#34d399','#fbbf24'];
+  const STAGE_Y      = [0.05, 0.28, 0.55, 0.78]; // fraction of height
+
+  // Draw background grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  [0.25,0.5,0.75].forEach(y => {
+    ctx.beginPath(); ctx.moveTo(0, y*H); ctx.lineTo(W, y*H); ctx.stroke();
+  });
+
+  // Draw stage labels on left
+  const labels = ['Awake','Light','Deep','REM'];
+  ctx.font = `${10 * window.devicePixelRatio / window.devicePixelRatio}px JetBrains Mono, monospace`;
+  ctx.fillStyle = 'rgba(144,144,168,0.6)';
+  ctx.textAlign = 'left';
+  STAGE_Y.forEach((y,i) => {
+    ctx.fillText(labels[i], 4, y*H + 4);
+  });
+
+  // Draw the hypnogram line
+  ctx.lineWidth = 2;
+  ctx.lineJoin  = 'round';
+
+  for (let i = 0; i < segs; i++) {
+    const x1 = i * segW + 32;
+    const x2 = (i+1) * segW + 32;
+    const y1 = STAGE_Y[stages[i]] * H;
+    const y2 = STAGE_Y[stages[Math.min(i+1, segs-1)]] * H;
+
+    // Fill under line
+    ctx.fillStyle = STAGE_COLORS[stages[i]] + '22';
+    ctx.fillRect(x1, y1, segW, H - y1);
+
+    // Line segment
+    ctx.strokeStyle = STAGE_COLORS[stages[i]];
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y1);
+    ctx.stroke();
+
+    // Vertical transition
+    if (i < segs-1 && stages[i] !== stages[i+1]) {
+      ctx.strokeStyle = STAGE_COLORS[stages[i]];
+      ctx.beginPath();
+      ctx.moveTo(x2, y1);
+      ctx.lineTo(x2, STAGE_Y[stages[i+1]] * H);
+      ctx.stroke();
+    }
+  }
+
+  // Time labels
+  ctx.fillStyle = 'rgba(90,90,120,0.8)';
+  ctx.textAlign = 'center';
+  const timeLabels = ['11pm','1am','3am','5am','7am'];
+  timeLabels.forEach((t,i) => {
+    const x = 32 + (i/(timeLabels.length-1)) * (W-32);
+    ctx.fillText(t, x, H-2);
+  });
+}
+
+// ── Info panel ────────────────────────────────────────────────────────────────
+const INFO = {
+  age:{title:'Age',subtitle:'Demographic factor',what:'Age is a significant predictor of sleep disorders. Insomnia becomes more common with age due to changes in sleep architecture — older adults spend less time in deep sleep.',ranges:[{label:'Young adult',val:'18–35'},{label:'Middle age',val:'36–55'},{label:'Older adult',val:'55+'}],signals:[{type:'hi',text:'<strong>Higher age</strong> is associated with more fragmented sleep and reduced melatonin production.'},{type:'lo',text:'<strong>Younger age</strong> generally correlates with better sleep quality, though stress and lifestyle still play a major role.'}]},
+  gender:{title:'Gender',subtitle:'Biological sex factor',what:'Biological sex influences sleep in multiple ways. Women are nearly twice as likely to experience insomnia, driven by hormonal fluctuations. Men are more prone to sleep apnea.',ranges:[{label:'Insomnia prevalence (women)',val:'~40%'},{label:'Insomnia prevalence (men)',val:'~30%'}],signals:[{type:'mid',text:'<strong>Female</strong> sex is a known risk factor for insomnia, particularly during hormonal transitions.'},{type:'mid',text:'<strong>Male</strong> sex is associated with higher risk of obstructive sleep apnea.'}]},
+  bmi:{title:'BMI Category',subtitle:'Body Mass Index',what:'BMI reflects your body composition. Higher BMI increases risk of sleep apnea due to fatty tissue around the airway and inflammation markers that disrupt sleep cycles.',ranges:[{label:'Normal',val:'BMI 18.5–24.9'},{label:'Overweight',val:'BMI 25–29.9'},{label:'Obese',val:'BMI ≥ 30'}],signals:[{type:'hi',text:'<strong>Obese BMI</strong> significantly increases risk of obstructive sleep apnea and poor sleep efficiency.'},{type:'lo',text:'<strong>Normal BMI</strong> is associated with the best sleep outcomes across all age groups.'}]},
+  sleep_duration:{title:'Sleep Duration',subtitle:'Total nightly sleep in hours',what:'Total time asleep each night. Adults need 7–9 hours. Chronic short sleep is one of the strongest predictors of insomnia and metabolic disorders.',ranges:[{label:'Recommended',val:'7–9 hrs'},{label:'Short sleep',val:'< 6 hrs'},{label:'Long sleep',val:'> 9 hrs'}],signals:[{type:'hi',text:'<strong>Less than 6 hours</strong> strongly associated with insomnia, increased cortisol, and cognitive impairment.'},{type:'lo',text:'<strong>7–9 hours</strong> is the optimal range — best cognitive and metabolic outcomes.'}]},
+  quality_of_sleep:{title:'Sleep Quality',subtitle:'Self-rated sleep quality (1–10)',what:'A subjective rating of how refreshed you feel after sleep. Low quality is a hallmark of insomnia even when duration is adequate.',ranges:[{label:'Poor',val:'1–4'},{label:'Moderate',val:'5–6'},{label:'Good',val:'7–10'}],signals:[{type:'hi',text:'<strong>Low scores (1–4)</strong> are a direct indicator of insomnia — correlates with next-day fatigue and impaired concentration.'},{type:'lo',text:'<strong>High scores (7–10)</strong> indicate restorative sleep.'}]},
+  stress_level:{title:'Stress Level',subtitle:'Perceived stress (1–10)',what:'The most common trigger of acute insomnia. Stress elevates cortisol which promotes wakefulness and suppresses melatonin.',ranges:[{label:'Low',val:'1–3'},{label:'Moderate',val:'4–6'},{label:'High',val:'7–10'}],signals:[{type:'hi',text:'<strong>High stress</strong> elevates cortisol at night, delays sleep onset, and increases wakefulness.'},{type:'lo',text:'<strong>Low stress</strong> is associated with fast sleep onset and more time in restorative deep sleep.'}]},
+  physical_activity:{title:'Physical Activity',subtitle:'Daily exercise in minutes',what:'One of the most effective non-pharmacological treatments for insomnia. Increases adenosine (sleep pressure) and reduces cortisol.',ranges:[{label:'WHO recommendation',val:'≥ 30 min/day'},{label:'Sedentary',val:'< 10 min'},{label:'Active',val:'60+ min'}],signals:[{type:'lo',text:'<strong>Regular exercise (30+ min)</strong> reduces time to fall asleep by up to 55% and increases deep sleep.'},{type:'hi',text:'<strong>Sedentary lifestyle</strong> linked to lighter, more fragmented sleep.'}]},
+  daily_steps:{title:'Daily Steps',subtitle:'Step count as activity proxy',what:'Passive measure of overall physical activity. Higher step counts linked to better sleep efficiency independent of intentional exercise.',ranges:[{label:'Sedentary',val:'< 5,000'},{label:'Active',val:'7,500–10,000'},{label:'Very active',val:'> 10,000'}],signals:[{type:'lo',text:'<strong>10,000+ steps/day</strong> associated with significantly better sleep quality.'},{type:'hi',text:'<strong>Under 5,000 steps</strong> correlates with lower sleep efficiency and more awakenings.'}]},
+  heart_rate:{title:'Resting Heart Rate',subtitle:'Manual/wearable heart rate (bpm)',what:'Resting HR reflects autonomic nervous system balance. A lower resting HR indicates parasympathetic dominance, conducive to sleep.',ranges:[{label:'Athlete',val:'40–60 bpm'},{label:'Normal adult',val:'60–100 bpm'},{label:'Elevated',val:'> 100 bpm'}],signals:[{type:'hi',text:'<strong>High resting HR (>80 bpm)</strong> suggests sympathetic overdrive — difficulty falling asleep.'},{type:'lo',text:'<strong>Low resting HR</strong> indicates good cardiovascular fitness — better sleep quality.'}]},
+  ecg_heart_rate:{title:'ECG Heart Rate',subtitle:'Electrocardiogram-derived heart rate',what:'Heart rate measured directly from an ECG — more precise than wrist-based. Elevated ECG HR at rest is a marker of physiological hyperarousal common in insomnia.',ranges:[{label:'Normal resting',val:'60–100 bpm'},{label:'During sleep',val:'40–80 bpm'}],signals:[{type:'hi',text:'<strong>Elevated ECG HR</strong> is a physiological marker of the hyperarousal state seen in chronic insomnia.'},{type:'lo',text:'<strong>Lower ECG HR</strong> reflects parasympathetic dominance and readiness for sleep onset.'}]},
+  ecg_qrs_duration:{title:'QRS Duration',subtitle:'Ventricular depolarisation time (ms)',what:'QRS duration reflects speed and synchrony of ventricular conduction. Prolonged QRS can indicate cardiac conditions that disrupt autonomic balance linked to sleep fragmentation.',ranges:[{label:'Normal',val:'60–100 ms'},{label:'Borderline',val:'100–120 ms'},{label:'Prolonged',val:'> 120 ms'}],signals:[{type:'lo',text:'<strong>Normal QRS (60–100ms)</strong> indicates healthy ventricular conduction — better autonomic regulation during sleep.'},{type:'hi',text:'<strong>Prolonged QRS (>120ms)</strong> may indicate conditions associated with sleep disturbance.'}]},
+  systolic:{title:'Systolic Blood Pressure',subtitle:'Peak arterial pressure (mmHg)',what:'Pressure when your heart beats. Normally dips 10–20% during sleep. In insomnia this dip is often absent — the cardiovascular system stays activated.',ranges:[{label:'Normal',val:'< 120 mmHg'},{label:'Elevated',val:'120–129 mmHg'},{label:'Hypertension',val:'≥ 130 mmHg'}],signals:[{type:'hi',text:'<strong>High systolic BP (≥130)</strong> — hypertension and insomnia have a bidirectional relationship.'},{type:'lo',text:'<strong>Normal systolic (<120)</strong> associated with healthy nocturnal BP dipping and restorative sleep.'}]},
+  diastolic:{title:'Diastolic Blood Pressure',subtitle:'Resting arterial pressure (mmHg)',what:'Pressure between heartbeats. Should decrease during sleep. Elevated diastolic BP is associated with increased sympathetic activity, a core feature of insomnia.',ranges:[{label:'Normal',val:'< 80 mmHg'},{label:'Stage 1 hypertension',val:'80–89 mmHg'},{label:'Stage 2 hypertension',val:'≥ 90 mmHg'}],signals:[{type:'hi',text:'<strong>High diastolic BP (≥80)</strong> — sustained cardiovascular stress linked to non-restorative sleep.'},{type:'lo',text:'<strong>Normal diastolic (<80)</strong> indicates healthy vascular tone and better autonomic regulation.'}]},
+  eeg_alpha:{title:'EEG Alpha Waves',subtitle:'Brain relaxation signal (8–13 Hz)',what:'Alpha waves represent a relaxed, wakeful state. Normal sleep involves a decrease in alpha activity. In insomnia, alpha waves persist abnormally during sleep preventing deep restoration.',ranges:[{label:'Normal resting alpha',val:'8–12 μV'},{label:'Low alpha (stressed)',val:'< 5 μV'},{label:'High alpha during sleep',val:'Abnormal'}],signals:[{type:'mid',text:'<strong>High alpha at bedtime</strong> means your brain is relaxed and ready for sleep onset.'},{type:'hi',text:'<strong>Alpha intrusion during deep sleep</strong> is a hallmark of non-restorative sleep seen in insomnia.'}]},
+  eeg_beta:{title:'EEG Beta Waves',subtitle:'Brain alertness signal (13–30 Hz)',what:'Beta waves represent active, alert thinking. High beta at bedtime is the neural signature of the "racing mind" that insomnia sufferers describe. The most consistent EEG finding in chronic insomnia.',ranges:[{label:'Normal waking',val:'12–20 μV'},{label:'Anxious/alert',val:'> 20 μV'},{label:'Relaxed/pre-sleep',val:'< 12 μV'}],signals:[{type:'hi',text:'<strong>High beta (>20 μV)</strong> at bedtime is the #1 EEG marker of insomnia — brain resists sleep.'},{type:'lo',text:'<strong>Low beta (<12 μV)</strong> before sleep indicates cognitive quieting — faster sleep onset.'}]},
+  eeg_theta:{title:'EEG Theta Waves',subtitle:'Drowsiness / light sleep signal (4–8 Hz)',what:'Theta waves emerge as you transition from wakefulness to sleep. Necessary for memory consolidation. Low theta power in insomnia reflects impaired sleep initiation.',ranges:[{label:'Awake (low)',val:'2–5 μV'},{label:'Drowsy / Stage 1',val:'5–8 μV'},{label:'REM sleep',val:'6–10 μV'}],signals:[{type:'lo',text:'<strong>Low theta</strong> means insufficient sleep stage progression — associated with insomnia.'},{type:'lo',text:'<strong>Normal theta (5–8 μV)</strong> indicates healthy sleep pressure building.'}]},
+  emg_mean:{title:'EMG Mean',subtitle:'Average muscle activity (mV)',what:'Measures electrical activity in muscles. During healthy sleep, muscle tone decreases progressively. Elevated mean activity indicates hyperarousal, restlessness, or periodic limb movement disorder.',ranges:[{label:'Awake resting',val:'0.1–0.5 mV'},{label:'Light sleep',val:'0.05–0.2 mV'},{label:'REM sleep',val:'< 0.05 mV'}],signals:[{type:'hi',text:'<strong>High mean EMG</strong> suggests restless legs or physiological hyperarousal — disrupts sleep continuity.'},{type:'lo',text:'<strong>Low mean EMG</strong> reflects proper muscle relaxation and deeper sleep stages.'}]},
+  emg_max:{title:'EMG Max',subtitle:'Peak muscle activity (mV)',what:'Peak muscle activity recorded during sleep. Sudden spikes represent arousals or muscle jerks. Frequent high peaks indicate sleep fragmentation.',ranges:[{label:'Normal peak (sleep)',val:'0.5–2.0 mV'},{label:'Elevated (arousal)',val:'2–5 mV'},{label:'Abnormal spike',val:'> 5 mV'}],signals:[{type:'hi',text:'<strong>High EMG max</strong> indicates frequent muscle bursts — fragments sleep architecture.'},{type:'lo',text:'<strong>Low EMG max</strong> with stable readings suggests undisturbed sleep with minimal arousals.'}]},
+  ecf_na:{title:'ECF Sodium (Na⁺)',subtitle:'Extracellular fluid sodium (mEq/L)',what:'Primary electrolyte controlling fluid balance. The brain\'s master clock (SCN) is sensitive to sodium levels. Dysregulation affects melatonin secretion timing and sleep-wake cycles.',ranges:[{label:'Normal range',val:'135–145 mEq/L'},{label:'Hyponatremia',val:'< 135 mEq/L'},{label:'Hypernatremia',val:'> 145 mEq/L'}],signals:[{type:'hi',text:'<strong>High sodium (>145)</strong> causes restlessness and disrupted sleep. Associated with dehydration.'},{type:'lo',text:'<strong>Normal sodium (135–145)</strong> supports stable neurological function and healthy circadian rhythm.'}]},
+  ecf_k:{title:'ECF Potassium (K⁺)',subtitle:'Extracellular fluid potassium (mEq/L)',what:'Regulates neuronal excitability and muscle function. Low potassium causes muscle cramps and restless legs — a common cause of nighttime awakenings.',ranges:[{label:'Normal range',val:'3.5–5.0 mEq/L'},{label:'Hypokalemia',val:'< 3.5 mEq/L'},{label:'Hyperkalemia',val:'> 5.0 mEq/L'}],signals:[{type:'hi',text:'<strong>Low potassium (<3.5)</strong> causes muscle cramps and restless leg syndrome — most common cause of nighttime awakenings.'},{type:'lo',text:'<strong>Normal potassium (3.5–5.0)</strong> supports proper thalamic sleep oscillations.'}]},
+};
+
+function showInfo(key) {
+  const d = INFO[key]; if(!d) return;
+  document.getElementById('panel-title').textContent=d.title;
+  document.getElementById('panel-subtitle').textContent=d.subtitle;
+  let html=`<p class="panel-what">${d.what}</p>`;
+  if(d.ranges?.length){
+    html+=`<div class="panel-range"><div class="range-title">Reference Ranges</div>`;
+    d.ranges.forEach(r=>html+=`<div class="range-row"><span class="range-label">${r.label}</span><span class="range-val">${r.val}</span></div>`);
+    html+=`</div>`;
+  }
+  if(d.signals?.length){
+    html+=`<div class="panel-signals"><div class="signal-title">What it means for your sleep</div>`;
+    d.signals.forEach(s=>html+=`<div class="signal-item"><div class="signal-dot ${s.type}"></div><div class="signal-text">${s.text}</div></div>`);
+    html+=`</div>`;
+  }
+  html+=`<div class="lexigram-note">🔬 Clinical NLP enrichment via <a href="https://lexigram.io" target="_blank">Lexigram</a> coming soon.</div>`;
+  document.getElementById('panel-body').innerHTML=html;
+  document.getElementById('info-panel').classList.add('open');
+  document.getElementById('info-overlay').classList.add('open');
+}
+
+function closePanel(){
+  document.getElementById('info-panel').classList.remove('open');
+  document.getElementById('info-overlay').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
+</script>
+</body>
+</html>
