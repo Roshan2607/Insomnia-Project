@@ -119,6 +119,3 @@ API_KEY=your_api_key
 This project is licensed under the MIT License.
 
 ---
-
-**Roshan**
-GitHub: https://github.com/Roshan2607
